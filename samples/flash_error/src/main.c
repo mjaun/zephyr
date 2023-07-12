@@ -1,11 +1,12 @@
 #include <zephyr/kernel.h>
-#include <zephyr/storage/flash_map.h>
 #include <zephyr/devicetree.h>
+#include <stm32h743xx.h>
 #include <core_cm7.h>
 
+#define FLASH_IRQ_NUM     4
 #define NUM_MPU_REGIONS   16
 
-static void dump_mpu_regions() {
+static void dump_mpu_regions(void) {
     uint32_t rbar[NUM_MPU_REGIONS];  // base address
     uint32_t rasr[NUM_MPU_REGIONS];  // attribute and size
 
@@ -41,34 +42,36 @@ static void dump_mpu_regions() {
         uint32_t c = (rasr[i] & MPU_RASR_C_Msk) >> MPU_RASR_C_Pos;
         uint32_t b = (rasr[i] & MPU_RASR_B_Msk) >> MPU_RASR_B_Pos;
 
-        printk("MPU Region %2u: 0x%08x-0x%08x: SRD=0x%02x, XN=%u, AP=0x%x, TEX=0x%x, S=%u, C=%u, B=%u\n",
+        printk("MPU Region %u: 0x%08x-0x%08x: SRD=0x%02x, XN=%u, AP=0x%x, TEX=0x%x, S=%u, C=%u, B=%u\n",
                i, start_address, end_address, srd, xn, ap, tex, s, c, b);
-
     }
 }
 
-void main(void) {
-    const struct flash_area *fa;
-    uint8_t data[4];
-    int ret;
+static void flash_error_isr(void *arg) {
+    printk("ISR triggered: %u ms\n", k_uptime_get_32());
+    printk("FLASH_SR1: 0x%08x\n", FLASH->SR1);
+    printk("FLASH_SR2: 0x%08x\n", FLASH->SR2);
 
+    FLASH->CCR1 = FLASH_FLAG_ALL_BANK1;
+    FLASH->CCR2 = FLASH_FLAG_ALL_BANK2;
+}
+
+static void enable_flash_error_interrupt(void) {
+    FLASH->CR1 |= FLASH_CR_RDSERRIE;
+    FLASH->CR1 |= FLASH_CR_RDPERRIE;
+    FLASH->CR2 |= FLASH_CR_RDSERRIE;
+    FLASH->CR2 |= FLASH_CR_RDPERRIE;
+
+    IRQ_CONNECT(FLASH_IRQ_NUM, 0, flash_error_isr, NULL, 0);
+    irq_enable(FLASH_IRQ_NUM);
+}
+
+void main(void) {
     dump_mpu_regions();
+    enable_flash_error_interrupt();
 
     while (1) {
-        ret = flash_area_open(FIXED_PARTITION_ID(slot0_partition), &fa);
-
-        if (ret != 0) {
-            printk("Error open: %d\n", ret);
-            continue;
-        }
-
-        ret = flash_area_read(fa, 0, data, sizeof(data));
-
-        if (ret < 0) {
-            printk("Error read: %d\n", ret);
-        }
-
-        flash_area_close(fa);
-        k_sleep(K_NSEC(1));
+        // error doesn't occur if sleep is longer than 1 tick
+        k_sleep(K_TICKS(1));
     }
 }
