@@ -1,9 +1,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/devicetree.h>
-#include <zephyr/linker/linker-defs.h>
 #include <core_cm7.h>
-#include <string.h>
 
 #define NUM_MPU_REGIONS   16
 
@@ -13,17 +11,15 @@ static void dump_mpu_regions() {
 
     uint32_t key = irq_lock();
 
+    uint32_t ctrl = MPU->CTRL;
+
     for (uint32_t i = 0; i < NUM_MPU_REGIONS; i++) {
         MPU->RNR = i;
         rbar[i] = MPU->RBAR;
         rasr[i] = MPU->RASR;
     }
 
-    uint32_t ctrl = MPU->CTRL;
-
     irq_unlock(key);
-
-    printk("NOCACHE Memory: 0x%08x-0x%08x\n", (uint32_t)&_nocache_ram_start, (uint32_t)&_nocache_ram_end);
 
     printk("MPU Control: %08x\n", ctrl);
 
@@ -52,8 +48,6 @@ static void dump_mpu_regions() {
 }
 
 void main(void) {
-    printk("Hello World!\n");
-
     const struct flash_area *fa;
     uint8_t data[4];
     int ret;
