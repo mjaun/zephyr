@@ -35,7 +35,7 @@ static void dump_mpu_regions() {
         uint32_t start_address = (rbar[i] & MPU_RBAR_ADDR_Msk);
         uint32_t size_bits = (rasr[i] & MPU_RASR_SIZE_Msk) >> MPU_RASR_SIZE_Pos;
         uint32_t region_size = 1 << (size_bits + 1);
-        uint32_t end_address = start_address + region_size;
+        uint32_t end_address = start_address + region_size - 1;
 
         uint32_t srd = (rasr[i] & MPU_RASR_SRD_Msk) >> MPU_RASR_SRD_Pos;
         uint32_t xn = (rasr[i] & MPU_RASR_XN_Msk) >> MPU_RASR_XN_Pos;

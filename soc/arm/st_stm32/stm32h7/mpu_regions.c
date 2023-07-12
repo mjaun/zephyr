@@ -9,6 +9,7 @@
 #include "../../common/cortex_m/arm_mpu_mem_cfg.h"
 
 static const struct arm_mpu_region mpu_regions[] = {
+    MPU_REGION_ENTRY("REGION_0", 0, {REGION_4G | (0x87 << MPU_RASR_SRD_Pos) | MPU_RASR_XN_Msk | MPU_RASR_S_Msk}),
 	MPU_REGION_ENTRY("FLASH", CONFIG_FLASH_BASE_ADDRESS,
 					 REGION_FLASH_ATTR(REGION_FLASH_SIZE)),
 	MPU_REGION_ENTRY("SRAM", CONFIG_SRAM_BASE_ADDRESS,
@@ -17,10 +18,10 @@ static const struct arm_mpu_region mpu_regions[] = {
 #if DT_NODE_HAS_STATUS(DT_NODELABEL(sram3), okay)
 	MPU_REGION_ENTRY("SRAM3_ETH_BUF",
 					 DT_REG_ADDR(DT_NODELABEL(sram3)),
-					 REGION_RAM_NOCACHE_ATTR(REGION_16K)),
+                     {REGION_16K | MPU_RASR_XN_Msk | (1 << MPU_RASR_TEX_Pos) | P_RW_U_NA_Msk}),
 	MPU_REGION_ENTRY("SRAM3_ETH_DESC",
 					 DT_REG_ADDR(DT_NODELABEL(sram3)),
-					 REGION_PPB_ATTR(REGION_256B)),
+                     {REGION_256B | MPU_RASR_XN_Msk | MPU_RASR_S_Msk | MPU_RASR_B_Msk | P_RW_U_NA_Msk}),
 #else
 	MPU_REGION_ENTRY("SRAM2_ETH_BUF",
 					 DT_REG_ADDR(DT_NODELABEL(sram2)),
@@ -32,7 +33,7 @@ static const struct arm_mpu_region mpu_regions[] = {
 #endif
 
 	/* DT-defined regions */
-	LINKER_DT_REGION_MPU(ARM_MPU_REGION_INIT)
+	//LINKER_DT_REGION_MPU(ARM_MPU_REGION_INIT)
 };
 
 const struct arm_mpu_config mpu_config = {
