@@ -22,6 +22,7 @@
 		zephyr,flash = &flash0;
 		zephyr,dtcm = &dtcm;
 		zephyr,code-partition = &slot0_partition;
+		zephyr,display = &ltdc;
 	};
 
 	leds: leds {
@@ -65,6 +66,16 @@
 	div-p = <2>;
 	div-q = <4>;
 	div-r = <2>;
+	clocks = <&clk_hse>;
+	status = "okay";
+};
+
+&pll3 {
+	div-m = <25>;
+	mul-n = <336>;
+	div-p = <2>;
+	div-q = <7>;
+	div-r = <16>;  // 21 MHz for LTDC
 	clocks = <&clk_hse>;
 	status = "okay";
 };
@@ -185,4 +196,39 @@
 			st,sdram-timing = <2 6 4 6 2 2 2>;
 		};
 	};
+};
+
+&ltdc {
+	pinctrl-0 = <&ltdc_r0_pi15 &ltdc_r1_pj0 &ltdc_r2_pj1 &ltdc_r3_pj2
+			&ltdc_r4_pj3 &ltdc_r5_pj4 &ltdc_r6_pj5 &ltdc_r7_pj6
+			&ltdc_g0_pj7 &ltdc_g1_pj8 &ltdc_g2_pj9 &ltdc_g3_pj10
+			&ltdc_g4_pj11 &ltdc_g5_pk0 &ltdc_g6_pk1 &ltdc_g7_pk2
+			&ltdc_b0_pj12 &ltdc_b1_pj13 &ltdc_b2_pj14 &ltdc_b3_pj15
+			&ltdc_b4_pk3 &ltdc_b5_pk4 &ltdc_b6_pk5 &ltdc_b7_pk6
+			&ltdc_de_pk7 &ltdc_clk_pi14 &ltdc_hsync_pi12 &ltdc_vsync_pi13>;
+	pinctrl-names = "default";
+	//disp-on-gpios = <&gpiok 7 GPIO_ACTIVE_HIGH>;
+	bl-ctrl-gpios = <&gpioa 6 GPIO_ACTIVE_HIGH>;
+	ext-sdram = <&sdram2>;
+	status = "okay";
+
+	width = <640>;
+	height = <480>;
+	pixel-format = <PANEL_PIXEL_FORMAT_RGB_888>;
+	display-timings {
+		compatible = "zephyr,panel-timing";
+		de-active = <0>;
+		pixelclk-active = <0>;
+		hsync-active = <0>;
+		vsync-active = <0>;
+		hsync-len = <30>;
+		vsync-len = <3>;
+		hback-porch = <114>;
+		vback-porch = <32>;
+		hfront-porch = <16>;
+		vfront-porch = <10>;
+	};
+	def-back-color-red = <0xFF>;
+	def-back-color-green = <0xFF>;
+	def-back-color-blue = <0xFF>;
 };
