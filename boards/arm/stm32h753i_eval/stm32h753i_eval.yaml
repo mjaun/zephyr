@@ -1,0 +1,15 @@
+identifier: stm32h753i_eval
+name: STM32H753XI Evaluation Board
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gnuarmemb
+  - xtools
+ram: 512
+flash: 2048
+supported:
+  - uart
+  - gpio
+  - netif:eth
+vendor: st

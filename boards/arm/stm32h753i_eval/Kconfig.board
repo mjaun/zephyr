@@ -1,0 +1,8 @@
+# STM32H753XI evaluation board configuration
+
+# Copyright (c) 2021 Blue Clover Devices
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_STM32H753I_EVAL
+	bool "STM32H753XI Evaluation Board"
+	depends on SOC_STM32H753XX
