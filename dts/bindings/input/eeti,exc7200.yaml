@@ -1,0 +1,23 @@
+# Copyright (c) 2023 Antmicro <www.antmicro.com>
+# SPDX-License-Identifier: Apache-2.0
+
+description: EXC7200 I2C touchscreen controller
+
+compatible: "eeti,exc7200"
+
+include: i2c-device.yaml
+
+properties:
+  screen-width:
+    type: int
+    default: 0
+    description: |
+      Screen width for scaling the reported coordinates.
+      Default: raw touchscreen resolution.
+
+  screen-height:
+    type: int
+    default: 0
+    description: |
+      Screen height for scaling the reported coordinates.
+      Default: raw touchscreen resolution.

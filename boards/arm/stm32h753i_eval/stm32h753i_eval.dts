@@ -49,6 +49,11 @@
 		led0 = &green_led;
 		led1 = &red_led;
 	};
+
+	lvgl_pointer {
+		compatible = "zephyr,lvgl-pointer-input";
+		input = <&exc7200>;
+	};
 };
 
 &clk_hsi48 {
@@ -231,4 +236,19 @@
 	def-back-color-red = <0xFF>;
 	def-back-color-green = <0xFF>;
 	def-back-color-blue = <0xFF>;
+};
+
+&i2c1 {
+	pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
+	pinctrl-names = "default";
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST>;
+
+	exc7200: exc7200@4 {
+		compatible = "eeti,exc7200";
+		status = "okay";
+		reg = <0x4>;
+		screen-width = <640>;
+		screen-height = <480>;
+	};
 };
