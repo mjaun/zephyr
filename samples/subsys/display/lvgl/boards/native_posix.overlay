@@ -63,3 +63,8 @@
 		scancodes = <0 21 5 30 31 32>;
 	};
 };
+
+&sdl_dc {
+	width = <640>;
+	height = <480>;
+};
