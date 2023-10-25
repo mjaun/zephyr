@@ -9,7 +9,7 @@ project(hello_world)
 set(CMAKE_C_FLAGS "-mlong-calls" "-mthumb")
 
 add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/hello_world.llext
-    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c -o ${PROJECT_BINARY_DIR}/hello_world.llext ${PROJECT_SOURCE_DIR}/hello_world.c
+    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -c -o ${PROJECT_BINARY_DIR}/hello_world.llext ../../../../samples/hello_world/apps/hello_world_c/hello_world.c
 )
 
 set(HELLO_WORLD_LLEXT ${PROJECT_BINARY_DIR}/hello_world.llext PARENT_SCOPE)

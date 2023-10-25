@@ -32,6 +32,10 @@ static char **app_argv;
 
 static char global_heap_buf[GLOBAL_HEAP_BUF_SIZE] = {0};
 
+static uint8_t wasm_binary[] = {
+#include "test.wasm.inc"
+};
+
 void iwasm_main() {
 	char error_buf[128];
 
@@ -51,16 +55,12 @@ void iwasm_main() {
 
 	bh_log_set_verbose_level(2);
 
-	/* load WASM byte buffer from byte buffer of include file */
-	uint8 *wasm_file_buf = (uint8 *) wasm_test_file;
-	uint32 wasm_file_size = sizeof(wasm_test_file);
-
 	/* load WASM module */
 	LOG_INF("Loading WASM module...");
 
 	wasm_module_t wasm_module =
-			wasm_runtime_load(wasm_file_buf,
-							  wasm_file_size,
+			wasm_runtime_load((uint8_t*) wasm_binary,
+							  sizeof(wasm_binary),
 							  error_buf,
 							  sizeof(error_buf));
 	if (!wasm_module) {
