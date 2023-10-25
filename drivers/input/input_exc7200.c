@@ -36,7 +36,6 @@ struct exc7200_data {
 static int exc7200_process(const struct device *dev)
 {
 	const struct exc7200_config *config = dev->config;
-	struct exc7200_data *data = dev->data;
 
 	uint8_t buf[10];
 	int res = i2c_burst_read_dt(&config->bus, EXC7200_READ_REG, buf, sizeof(buf));

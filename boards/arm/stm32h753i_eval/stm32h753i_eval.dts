@@ -219,7 +219,7 @@
 
 	width = <640>;
 	height = <480>;
-	pixel-format = <PANEL_PIXEL_FORMAT_RGB_888>;
+	pixel-format = <PANEL_PIXEL_FORMAT_RGB_565>;
 	display-timings {
 		compatible = "zephyr,panel-timing";
 		de-active = <0>;
