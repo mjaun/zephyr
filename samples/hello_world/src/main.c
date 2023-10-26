@@ -10,47 +10,51 @@
 
 #include "bh_platform.h"
 #include "wasm_export.h"
-#include "test_wasm.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(main);
 
-#define GLOBAL_HEAP_BUF_SIZE 131072
 #define APP_STACK_SIZE 8192
 #define APP_HEAP_SIZE 8192
 
-#ifdef CONFIG_NO_OPTIMIZATIONS
-#define MAIN_THREAD_STACK_SIZE 8192
-#else
-#define MAIN_THREAD_STACK_SIZE 4096
-#endif
-
-#define MAIN_THREAD_PRIORITY 5
-
-static int app_argc;
-static char **app_argv;
-
-static char global_heap_buf[GLOBAL_HEAP_BUF_SIZE] = {0};
+static char wasm_heap_buf[KB(256)];
+static struct k_heap wasm_heap;
 
 static uint8_t wasm_binary[] = {
 #include "test.wasm.inc"
 };
 
-void iwasm_main() {
+static void * wasm_malloc(unsigned int size) {
+	// align to 8 bytes
+	if (size & 0x7) {
+		size &= ~0x7;
+		size += 0x8;
+	}
+
+	return k_heap_aligned_alloc(&wasm_heap, 8, size, K_NO_WAIT);
+}
+
+static void wasm_free(void *ptr) {
+	return k_heap_free(&wasm_heap, ptr);
+}
+
+int main() {
 	char error_buf[128];
+
+	k_heap_init(&wasm_heap, wasm_heap_buf, sizeof(wasm_heap_buf));
 
 	RuntimeInitArgs init_args;
 	memset(&init_args, 0, sizeof(RuntimeInitArgs));
-	init_args.mem_alloc_type = Alloc_With_Pool;
-	init_args.mem_alloc_option.pool.heap_buf = global_heap_buf;
-	init_args.mem_alloc_option.pool.heap_size = sizeof(global_heap_buf);
+	init_args.mem_alloc_type = Alloc_With_Allocator;
+	init_args.mem_alloc_option.allocator.malloc_func = wasm_malloc;
+	init_args.mem_alloc_option.allocator.free_func = wasm_free;
 
 	/* initialize runtime environment */
 	LOG_INF("Initializing WASM runtime...");
 
 	if (!wasm_runtime_full_init(&init_args)) {
 		LOG_ERR("Init runtime environment failed!");
-		return;
+		return 0;
 	}
 
 	bh_log_set_verbose_level(2);
@@ -85,7 +89,7 @@ void iwasm_main() {
 
 	/* invoke the main function */
 	LOG_INF("Invoking main function...");
-	wasm_application_execute_main(wasm_module_inst, app_argc, app_argv);
+	wasm_application_execute_main(wasm_module_inst, 0, NULL);
 	const char *exception = wasm_runtime_get_exception(wasm_module_inst);
 
 	if (exception != NULL) {
@@ -105,23 +109,6 @@ fail1:
 	/* destroy runtime environment */
 	LOG_INF("Destroying WASM runtime...");
 	wasm_runtime_destroy();
-}
 
-K_THREAD_STACK_DEFINE(iwasm_main_thread_stack, MAIN_THREAD_STACK_SIZE);
-static struct k_thread iwasm_main_thread;
-
-static bool iwasm_init(void) {
-	k_tid_t tid = k_thread_create(&iwasm_main_thread,
-								  iwasm_main_thread_stack,
-								  MAIN_THREAD_STACK_SIZE,
-								  iwasm_main,
-								  NULL, NULL, NULL,
-								  MAIN_THREAD_PRIORITY,
-								  0, K_NO_WAIT);
-	return tid ? true : false;
-}
-
-int main(void) {
-	iwasm_init();
 	return 0;
 }

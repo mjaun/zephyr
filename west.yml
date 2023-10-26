@@ -338,7 +338,7 @@ manifest:
       path: modules/lib/zcbor
     - name: wasm-micro-runtime
       url: https://github.com/bytecodealliance/wasm-micro-runtime.git
-      revision: fa2f29fd8ab3f72e3efb551d19cb6b214ead91f8
+      revision: 9a5c777aff0bd5692baec9dba83da6fafc67f28f
       path: modules/lib/wasm-micro-runtime
 
   self:

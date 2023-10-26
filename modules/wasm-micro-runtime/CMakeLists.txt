@@ -22,6 +22,7 @@ if(CONFIG_WAMR)
     BH_PLATFORM_ZEPHYR
     BH_MALLOC=wasm_runtime_malloc
     BH_FREE=wasm_runtime_free
+    WASM_ENABLE_BULK_MEMORY=1
   )
 
   # General files
