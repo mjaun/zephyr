@@ -17,7 +17,7 @@ extern "C" fn rust_main() {
 
     let thread = kernel::Thread::new(move || {
         printk!("Variable within thread: {}\n", variable);
-    }, 1024, 5, Duration::MAX).expect("Failed to creat thread.");
+    }, 1024, 5, Duration::MAX).unwrap();
 
     thread.start();
     thread.join(Duration::MAX).unwrap();

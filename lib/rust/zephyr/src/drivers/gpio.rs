@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bitmask_enum::bitmask;
-use crate::errno::Errno;
+use crate::errno::{check_result, ZephyrResult};
 
 // Maybe this should be somehow wrapped to not expose zephyr_sys stuff to the application.
 pub type GpioDtSpec = zephyr_sys::gpio_dt_spec;
@@ -31,15 +31,15 @@ impl GpioPin {
         GpioPin { gpio_dt_spec }
     }
 
-    pub fn configure(&self, extra_flags: GpioFlags) -> Result<(), Errno> {
+    pub fn configure(&self, extra_flags: GpioFlags) -> ZephyrResult<()> {
         unsafe {
-            Errno::from(zephyr_sys::gpio_pin_configure_dt(&self.gpio_dt_spec, extra_flags.bits()))
+            check_result(zephyr_sys::gpio_pin_configure_dt(&self.gpio_dt_spec, extra_flags.bits()))
         }
     }
 
-    pub fn toggle(&self) -> Result<(), Errno> {
+    pub fn toggle(&self) -> ZephyrResult<()> {
         unsafe {
-            Errno::from(zephyr_sys::gpio_pin_toggle_dt(&self.gpio_dt_spec))
+            check_result(zephyr_sys::gpio_pin_toggle_dt(&self.gpio_dt_spec))
         }
     }
 }

@@ -87,19 +87,27 @@ pub enum Errno {
     ECANCELED = zephyr_sys::ECANCELED,
 }
 
-impl Errno {
-    pub fn from(result: core::ffi::c_int) -> Result<(), Self> {
-        Self::from_result(result).map(|_| ())
+pub type ZephyrResult<T> = Result<T, Errno>;
+
+pub fn check_result(result: core::ffi::c_int) -> ZephyrResult<()> {
+    check_value(result).map(|_| ())
+}
+
+pub fn check_value(result: core::ffi::c_int) -> ZephyrResult<i32> {
+    if result >= 0 {
+        return Ok(result as i32);
     }
 
-    pub fn from_result(result: core::ffi::c_int) -> Result<i32, Self> {
-        if result >= 0 {
-            return Ok(result as i32);
-        }
+    match Errno::try_from(-result as u32) {
+        Ok(errno) => Err(errno),
+        _ => panic!("Unexpected value"),
+    }
+}
 
-        match Self::try_from(-result as u32) {
-            Ok(errno) => Err(errno),
-            _ => panic!("Unexpected value"),
-        }
+pub fn check_ptr<T>(result: *mut T, null_error: Errno) -> ZephyrResult<*mut T> {
+    if result == core::ptr::null_mut() {
+        Err(null_error)
+    } else {
+        Ok(result)
     }
 }
