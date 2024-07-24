@@ -31,6 +31,12 @@ pub fn msleep(ms: i32) -> i32 {
     unsafe { zephyr_sys::k_msleep(ms) }
 }
 
+pub fn rand(range: core::ops::Range<u32>) -> u32 {
+    let range_size = range.end - range.start;
+    let random_value = unsafe { zephyr_sys::sys_rand32_get() };
+    range.start + (random_value % range_size)
+}
+
 const FOREVER: zephyr_sys::k_timeout_t = zephyr_sys::k_timeout_t { ticks: -1 as zephyr_sys::k_ticks_t };
 const NO_WAIT: zephyr_sys::k_timeout_t = zephyr_sys::k_timeout_t { ticks: 0 };
 
@@ -85,7 +91,10 @@ impl Thread {
 
             let thread_stack = match thread_stack_alloc(stack_size) {
                 Ok(thread_stack) => Ok(thread_stack),
-                Err(errno) => { kobj_free(thread); Err(errno) },
+                Err(errno) => {
+                    kobj_free(thread);
+                    Err(errno)
+                }
             }?;
 
             let tid = zephyr_sys::k_thread_create(
@@ -169,6 +178,9 @@ impl Mutex {
     }
 }
 
+unsafe impl Send for Mutex {}
+unsafe impl Sync for Mutex {}
+
 impl Drop for Mutex {
     fn drop(&mut self) {
         unsafe {
@@ -214,3 +226,6 @@ impl Semaphore {
         }
     }
 }
+
+unsafe impl Send for Semaphore {}
+unsafe impl Sync for Semaphore {}

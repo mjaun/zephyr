@@ -3,4 +3,5 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/random/random.h>
 #include <zephyr/drivers/gpio.h>
