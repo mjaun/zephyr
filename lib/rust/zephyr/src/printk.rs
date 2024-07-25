@@ -2,12 +2,14 @@
 //!
 //! This uses the `k_str_out` syscall, which is part of printk to output to the console.
 
+use core::ffi::c_char;
 use core::fmt::{
     Arguments,
     Result,
     Write,
     write,
 };
+use zephyr_sys::k_str_out;
 
 #[macro_export]
 macro_rules! printk {
@@ -74,7 +76,7 @@ impl Context {
     fn flush(&mut self) {
         if self.count > 0 {
             unsafe {
-                wrapped_str_out(self.buf.as_ptr(), self.count);
+                k_str_out(self.buf.as_mut_ptr() as *mut c_char, self.count);
             }
             self.count = 0;
         }
@@ -107,8 +109,4 @@ pub fn printkln(args: Arguments<'_>) {
     write(&mut context, args).unwrap();
     context.add_byte(b'\n');
     context.flush();
-}
-
-extern "C" {
-    fn wrapped_str_out(buf: *const u8, len: usize);
 }
