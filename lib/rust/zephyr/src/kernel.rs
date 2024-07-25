@@ -3,11 +3,11 @@
 
 use alloc::boxed::Box;
 use alloc::ffi::CString;
-use core::ffi::{c_char, c_void};
-use core::mem::{align_of, size_of};
+use alloc::string::String;
+use core::ffi::{c_char, c_int, c_uint, c_void, CStr};
 use core::ptr;
 use core::time::Duration;
-use crate::errno::{check_ptr, check_result, Errno, ZephyrResult};
+use crate::errno::{check_ptr, check_ptr_mut, check_result, Errno, ZephyrResult};
 
 #[macro_export]
 macro_rules! printk {
@@ -55,20 +55,60 @@ fn into_timeout(value: Duration) -> zephyr_sys::k_timeout_t {
     zephyr_sys::k_timeout_t { ticks: ticks as zephyr_sys::k_ticks_t }
 }
 
-unsafe fn kobj_alloc<T>() -> ZephyrResult<*mut T> {
-    check_ptr(zephyr_sys::k_aligned_alloc(align_of::<T>(), size_of::<T>()) as *mut T, Errno::ENOMEM)
+#[repr(u32)]
+enum Kobject {
+    Thread = zephyr_sys::k_objects_K_OBJ_THREAD,
+    Mutex = zephyr_sys::k_objects_K_OBJ_MUTEX,
+    Semaphore = zephyr_sys::k_objects_K_OBJ_SEM,
 }
 
-unsafe fn kobj_free<T>(obj: *mut T) {
-    zephyr_sys::k_free(obj as *mut c_void);
+trait KobjectType {
+    fn get_enum() -> Kobject;
 }
 
-unsafe fn thread_stack_alloc(size: usize) -> ZephyrResult<*mut zephyr_sys::k_thread_stack_t> {
-    check_ptr(zephyr_sys::k_thread_stack_alloc(size, 0), Errno::ENOMEM)
+impl KobjectType for zephyr_sys::k_thread {
+    fn get_enum() -> Kobject {
+        Kobject::Thread
+    }
+}
+
+impl KobjectType for zephyr_sys::k_mutex {
+    fn get_enum() -> Kobject {
+        Kobject::Mutex
+    }
+}
+
+impl KobjectType for zephyr_sys::k_sem {
+    fn get_enum() -> Kobject {
+        Kobject::Semaphore
+    }
+}
+
+unsafe fn object_alloc<T: KobjectType>() -> ZephyrResult<*mut T> {
+    check_ptr_mut(zephyr_sys::k_object_alloc(T::get_enum() as c_uint) as *mut T, Errno::ENOMEM)
+}
+
+unsafe fn object_free<T: KobjectType>(obj: *mut T) {
+    zephyr_sys::k_object_free(obj as *mut c_void);
+}
+
+/*
+unsafe fn object_release<T: KobjectType>(obj: *mut T) {
+    zephyr_sys::k_object_release(obj as *const c_void);
+}
+*/
+
+unsafe fn thread_stack_alloc(size: usize, flags: u32) -> ZephyrResult<*mut zephyr_sys::k_thread_stack_t> {
+    check_ptr_mut(zephyr_sys::k_thread_stack_alloc(size, flags as c_int), Errno::ENOMEM)
 }
 
 unsafe fn thread_stack_free(thread_stack: *mut zephyr_sys::k_thread_stack_t) {
     zephyr_sys::k_thread_stack_free(thread_stack);
+}
+
+pub enum ThreadMode {
+    Supervisor,
+    User,
 }
 
 pub struct Thread {
@@ -78,7 +118,10 @@ pub struct Thread {
 }
 
 impl Thread {
-    pub fn new<F>(entry_point: F, stack_size: usize, priority: i32, delay: Duration) -> ZephyrResult<Self>
+    const K_USER: u32 = 1 << 2;
+    const K_INHERIT_PERMS: u32 = 1 << 3;
+
+    pub fn new<F>(entry_point: F, stack_size: usize, priority: i32, mode: ThreadMode, delay: Duration) -> ZephyrResult<Self>
     where
         F: FnOnce() + 'static,
         F: Send,
@@ -87,12 +130,22 @@ impl Thread {
         let closure_ptr = Box::into_raw(boxed_closure) as *mut c_void;
 
         unsafe {
-            let thread = kobj_alloc()?;
+            let thread = object_alloc()?;
 
-            let thread_stack = match thread_stack_alloc(stack_size) {
+            let stack_flags = match mode {
+                ThreadMode::Supervisor => 0,
+                ThreadMode::User => Self::K_USER,
+            };
+
+            let thread_flags = match mode {
+                ThreadMode::Supervisor => Self::K_INHERIT_PERMS,
+                ThreadMode::User => Self::K_USER | Self::K_INHERIT_PERMS,
+            };
+
+            let thread_stack = match thread_stack_alloc(stack_size, stack_flags) {
                 Ok(thread_stack) => Ok(thread_stack),
                 Err(errno) => {
-                    kobj_free(thread);
+                    object_free(thread);
                     Err(errno)
                 }
             }?;
@@ -106,7 +159,7 @@ impl Thread {
                 ptr::null_mut(),
                 ptr::null_mut(),
                 priority,
-                0,
+                thread_flags,
                 into_timeout(delay),
             );
 
@@ -131,6 +184,38 @@ impl Thread {
             zephyr_sys::k_thread_abort(self.tid);
         }
     }
+
+    pub fn name_set(&self, name: &str) -> ZephyrResult<()> {
+        unsafe {
+            let cname = CString::new(name).unwrap();
+            check_result(zephyr_sys::k_thread_name_set(self.tid, cname.as_ptr()))
+        }
+    }
+
+    pub fn name_get(&self) -> ZephyrResult<String> {
+        unsafe {
+            let name_ptr = check_ptr(zephyr_sys::k_thread_name_get(self.tid), Errno::ENOTSUP)?;
+            Ok(String::from(CStr::from_ptr(name_ptr).to_str().unwrap()))
+        }
+    }
+
+    pub fn user_mode_enter<F>(entry_point: F) -> !
+    where
+        F: FnOnce() + 'static,
+        F: Send,
+    {
+        let boxed_closure = Box::new(Box::new(entry_point) as Box<dyn FnOnce()>);
+        let closure_ptr = Box::into_raw(boxed_closure) as *mut c_void;
+
+        unsafe {
+            zephyr_sys::k_thread_user_mode_enter(
+                Some(rust_thread_entry),
+                closure_ptr,
+                ptr::null_mut(),
+                ptr::null_mut()
+            )
+        }
+    }
 }
 
 impl Drop for Thread {
@@ -138,7 +223,7 @@ impl Drop for Thread {
         self.abort();
 
         unsafe {
-            kobj_free(self.thread);
+            object_free(self.thread);
             thread_stack_free(self.thread_stack);
         }
     }
@@ -159,7 +244,7 @@ pub struct Mutex {
 impl Mutex {
     pub fn new() -> ZephyrResult<Self> {
         unsafe {
-            let mutex = kobj_alloc()?;
+            let mutex = object_alloc()?;
             zephyr_sys::k_mutex_init(mutex);
             Ok(Mutex { mutex })
         }
@@ -184,7 +269,7 @@ unsafe impl Sync for Mutex {}
 impl Drop for Mutex {
     fn drop(&mut self) {
         unsafe {
-            kobj_free(self.mutex);
+            object_free(self.mutex);
         }
     }
 }
@@ -196,7 +281,7 @@ pub struct Semaphore {
 impl Semaphore {
     pub fn new(limit: u32, initial_count: u32) -> ZephyrResult<Self> {
         unsafe {
-            let sem = kobj_alloc()?;
+            let sem = object_alloc()?;
             zephyr_sys::k_sem_init(sem, limit, initial_count);
             Ok(Semaphore { sem })
         }

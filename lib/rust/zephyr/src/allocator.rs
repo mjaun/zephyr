@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use core::alloc::{GlobalAlloc, Layout};
-use zephyr_sys::{k_aligned_alloc, k_free};
+
+extern "C" {
+    static mut rust_heap: zephyr_sys::k_heap;
+}
 
 struct ZephyrAllocator {}
 
@@ -13,10 +16,14 @@ unsafe impl Sync for ZephyrAllocator {}
 
 unsafe impl GlobalAlloc for ZephyrAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        return k_aligned_alloc(layout.align(), layout.size()) as *mut u8;
+        #![allow(static_mut_refs)]
+        zephyr_sys::k_heap_aligned_alloc(&mut rust_heap, layout.align(),
+                                         layout.size(),
+                                         zephyr_sys::k_timeout_t { ticks: 0 }) as *mut u8
     }
 
-    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
-        return k_free(_ptr as *mut core::ffi::c_void);
+    unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
+        #![allow(static_mut_refs)]
+        zephyr_sys::k_heap_free(&mut rust_heap, ptr as *mut core::ffi::c_void)
     }
 }

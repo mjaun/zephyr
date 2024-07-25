@@ -11,6 +11,7 @@ use core::time::Duration;
 
 use zephyr::*;  // Wildcard import to bring in nested macros, maybe there is a better way
 use zephyr::drivers::gpio::{GpioPin, GpioFlags};
+use zephyr::kernel::{Thread, ThreadMode};
 
 const PHILOSOPHER_COUNT: usize = 5;
 const FORK_COUNT: usize = 4;
@@ -60,11 +61,19 @@ extern "C" fn rust_main() {
         let fork1 = forks[fork_id1].clone();
         let fork2 = forks[fork_id2].clone();
 
-        philosophers.push(kernel::Thread::new(move || {
+        let thread = kernel::Thread::new(move || {
             philosopher(phil_id, fork1.as_ref(), fork2.as_ref());
-        }, 1024, 5, Duration::ZERO).unwrap());
+        }, 2048, 5, ThreadMode::User, Duration::ZERO).unwrap();
+
+        thread.name_set(alloc::format!("philosopher_{}", phil_id).as_str()).unwrap();
+
+        philosophers.push(thread);
     }
 
+    Thread::user_mode_enter(|| rust_main_user());
+}
+
+fn rust_main_user() {
     let gpio_pin = GpioPin::new(gpio_dt_spec_get!(dt_alias!(led0), gpios));
 
     gpio_pin.configure(GpioFlags::OutputActive)

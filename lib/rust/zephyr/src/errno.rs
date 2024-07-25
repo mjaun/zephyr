@@ -104,7 +104,15 @@ pub fn check_value(result: core::ffi::c_int) -> ZephyrResult<i32> {
     }
 }
 
-pub fn check_ptr<T>(result: *mut T, null_error: Errno) -> ZephyrResult<*mut T> {
+pub fn check_ptr<T>(result: *const T, null_error: Errno) -> ZephyrResult<*const T> {
+    if result == core::ptr::null() {
+        Err(null_error)
+    } else {
+        Ok(result)
+    }
+}
+
+pub fn check_ptr_mut<T>(result: *mut T, null_error: Errno) -> ZephyrResult<*mut T> {
     if result == core::ptr::null_mut() {
         Err(null_error)
     } else {

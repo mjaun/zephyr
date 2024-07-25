@@ -213,6 +213,9 @@ ${config_paths}
   target_link_libraries(app PUBLIC -Wl,--allow-multiple-definition ${RUST_LIBRARY})
   add_dependencies(app librustapp)
 
+  get_filename_component(RUST_LIBRARY_NAME ${RUST_LIBRARY} NAME)
+  set_property(TARGET zephyr_property_target APPEND PROPERTY COMPILE_OPTIONS "-l" "${RUST_LIBRARY_NAME}" "rust_mem_part")
+
   target_sources(app PRIVATE
     ${ZEPHYR_BASE}/lib/rust/main.c
     ${ZEPHYR_BASE}/lib/rust/panic.c
