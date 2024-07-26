@@ -19,4 +19,20 @@ config RUST
 	help
 	  This option enables the use of applications written in Rust.
 
+if RUST
+
+config RUST_HEAP
+    bool "Heap support for Rust application"
+    help
+      Enables dynamic memory (alloc crate) in Rust application.
+
+config RUST_HEAP_SIZE
+    int "Heap size for Rust"
+    depends on RUST_HEAP
+    default 8192
+    help
+      Size of the heap provided to the Rust application.
+
+endif
+
 endmenu

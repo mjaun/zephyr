@@ -19,6 +19,9 @@ compile_error!("CONFIG_RUST must be set to build Rust in Zephyr");
 #[cfg(CONFIG_PRINTK)]
 pub mod printk;
 
+#[cfg(CONFIG_RUST_HEAP)]
+mod heap;
+
 use core::panic::PanicInfo;
 
 /// Override rust's panic.  This simplistic initial version just hangs in a loop.
