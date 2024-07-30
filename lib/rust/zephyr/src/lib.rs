@@ -7,6 +7,7 @@
 //! Zephyr.
 
 #![no_std]
+extern crate alloc;
 
 // Bring in the generated kconfig module
 include!(concat!(env!("OUT_DIR"), "/kconfig.rs"));
@@ -23,6 +24,7 @@ pub mod printk;
 mod heap;
 
 pub mod errno;
+pub mod timeout;
 
 use core::panic::PanicInfo;
 
