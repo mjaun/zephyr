@@ -26,6 +26,7 @@ mod heap;
 pub mod errno;
 pub mod timeout;
 pub mod thread;
+pub mod mutex;
 
 use core::panic::PanicInfo;
 
