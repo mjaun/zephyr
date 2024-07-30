@@ -22,6 +22,8 @@ pub mod printk;
 #[cfg(CONFIG_RUST_HEAP)]
 mod heap;
 
+pub mod errno;
+
 use core::panic::PanicInfo;
 
 /// Override rust's panic.  This simplistic initial version just hangs in a loop.
