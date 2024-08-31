@@ -2,9 +2,18 @@
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/sensor.h>
+#include "wifi.h"
 
 int main(void)
 {
+	wifi_init();
+	wifi_connect();
+
+	k_sleep(K_SECONDS(10));
+
+	wifi_disconnect();
+	return 0;
+
 	const struct device *dev = DEVICE_DT_GET(DT_ALIAS(temp_sensor));
 	int res;
 
