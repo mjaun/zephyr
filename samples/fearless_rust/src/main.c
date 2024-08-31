@@ -3,15 +3,29 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/sensor.h>
 #include "wifi.h"
+#include "udp.h"
 
 int main(void)
 {
 	wifi_init();
-	wifi_connect();
 
-	k_sleep(K_SECONDS(10));
+	if (wifi_connect() != 0) {
+		goto teardown;
+	}
 
+	if (udp_init() != 0) {
+		goto teardown_disconnect;
+	}
+
+	const char* hello = "hello world!\n";
+	(void) udp_send(hello, strlen(hello));
+
+	k_sleep(K_SECONDS(3));
+
+teardown_disconnect:
 	wifi_disconnect();
+
+teardown:
 	return 0;
 
 	const struct device *dev = DEVICE_DT_GET(DT_ALIAS(temp_sensor));

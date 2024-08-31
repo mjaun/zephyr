@@ -1,3 +1,4 @@
+#include "wifi.h"
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
 #include <zephyr/net/net_if.h>
@@ -96,7 +97,7 @@ int wifi_disconnect()
         return ret;
     }
 
-    ret = k_sem_take(&connected_sem, K_SECONDS(5));
+    ret = k_sem_take(&disconnected_sem, K_SECONDS(5));
 
     if (ret != 0) {
         LOG_ERR("Failed to disconnect");
@@ -144,6 +145,7 @@ static void handle_wifi_disconnect_result(struct net_mgmt_event_callback *cb)
 
     if (status->status == 0) {
         LOG_INF("Disconnected");
+        k_sem_give(&disconnected_sem);
     } else {
         LOG_ERR("Disconnection request failed: %d", status->status);
     }
