@@ -1,18 +1,31 @@
-#include <esp_sleep.h>
 #include <zephyr/kernel.h>
-#include <zephyr/device.h>
-#include <zephyr/devicetree.h>
-#include <zephyr/drivers/sensor.h>
 #include <zephyr/sys/poweroff.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_ctrl.h>
+#include <esp_sleep.h>
 #include "wifi.h"
 #include "udp.h"
+#include "measurement.h"
 
 LOG_MODULE_REGISTER(main);
 
 int main(void)
 {
+	esp_sleep_enable_timer_wakeup(10 * 1000000);
+
+	LOG_INF("Starting measurement");
+
+	struct measurement measurement;
+
+	if (measurement_get(&measurement) != 0) {
+		goto teardown;
+	}
+
+	LOG_INF("Device ID: %016llx", measurement.device_id);
+	LOG_INF("Temperature: %.3f C", (double) measurement.value);
+
+	LOG_INF("Starting to upload data");
+
 	wifi_init();
 
 	if (wifi_connect() != 0) {
@@ -39,31 +52,5 @@ teardown:
 		// flush log messages
 	}
 
-	esp_sleep_enable_timer_wakeup(10 * 1000000);
 	sys_poweroff();
-	return 0;
-
-	const struct device *dev = DEVICE_DT_GET(DT_ALIAS(temp_sensor));
-	int res;
-
-	while (true) {
-		struct sensor_value temp;
-
-		res = sensor_sample_fetch(dev);
-		if (res != 0) {
-			printk("sample_fetch() failed: %d\n", res);
-			return res;
-		}
-
-		res = sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-		if (res != 0) {
-			printk("channel_get() failed: %d\n", res);
-			return res;
-		}
-
-		printk("Temp: %d.%06d\n", temp.val1, temp.val2);
-		k_sleep(K_MSEC(2000));
-	}
-
-	return 0;
 }

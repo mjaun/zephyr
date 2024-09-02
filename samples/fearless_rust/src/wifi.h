@@ -1,5 +1,5 @@
 #pragma once
 
-void wifi_init();
-int wifi_connect();
-int wifi_disconnect();
+void wifi_init(void);
+int wifi_connect(void);
+int wifi_disconnect(void);
