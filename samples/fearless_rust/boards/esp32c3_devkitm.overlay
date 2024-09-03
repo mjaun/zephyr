@@ -5,7 +5,7 @@
 
 	w1: w1_gpio {
 		compatible = "zephyr,w1-gpio";
-		gpios = <&gpio0 3 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;  // add GPIO_PULL_UP if no external pull-up is used
+		gpios = <&gpio0 3 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN | GPIO_PULL_UP)>;
 		status = "okay";
 
 		ds18b20: ds18b20 {

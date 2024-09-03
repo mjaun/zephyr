@@ -279,10 +279,20 @@ static int ds18b20_configure(const struct device *dev)
 		return -EINVAL;
 	}
 
-	if ((cfg->family != 0) && (cfg->family != data->config.rom.family)) {
-		LOG_ERR("Found 1-Wire slave is not a %s", dev->name);
-		return -EINVAL;
-	}
+	//if ((cfg->family != 0) && (cfg->family != data->config.rom.family)) {
+	//	LOG_ERR("Found 1-Wire slave is not a %s: 0x%x", dev->name, data->config.rom.family);
+	//	return -EINVAL;
+	//}
+	LOG_INF("Family: 0x%x", data->config.rom.family);
+	LOG_INF("Serial: 0x%hhx%hhx%hhx%hhx%hhx%hhx",
+		data->config.rom.serial[5],
+		data->config.rom.serial[4],
+		data->config.rom.serial[3],
+		data->config.rom.serial[2],
+		data->config.rom.serial[1],
+		data->config.rom.serial[0]
+	);
+	LOG_INF("CRC:    0x%x", data->config.rom.crc);
 
 	/* write default configuration */
 	if (cfg->chip == type_ds18b20) {
