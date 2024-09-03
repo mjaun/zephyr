@@ -1,0 +1,21 @@
+/ {
+	aliases {
+		temp-sensor = &ds18b20;
+	};
+
+	w1: w1_gpio {
+		compatible = "zephyr,w1-gpio";
+		gpios = <&gpio0 3 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN | GPIO_PULL_UP)>;
+		status = "okay";
+
+		ds18b20: ds18b20 {
+			compatible = "maxim,ds18b20";
+			resolution = <12>;
+			status = "okay";
+		};
+	};
+};
+
+&wifi {
+	status = "okay";
+};
