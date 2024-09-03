@@ -1,38 +1,39 @@
-#include <zephyr/kernel.h>
-#include <zephyr/sys/poweroff.h>
-#include <zephyr/logging/log.h>
-#include <zephyr/logging/log_ctrl.h>
-#include <esp_sleep.h>
 #include "wifi.h"
 #include "udp.h"
 #include "measurement.h"
+#include "serializer.h"
+#include "device.h"
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(main);
 
 int main(void)
 {
-	esp_sleep_enable_timer_wakeup(10 * 1000000);
+	device_schedule_wakeup(10);
 
-	LOG_INF("Starting measurement");
+	uint64_t device_id = device_id_get();
+	float temperature;
 
-	struct measurement measurement;
-
-	if (measurement_get(&measurement) != 0) {
+	if (measurement_get(&temperature) != 0) {
 		goto teardown;
 	}
 
-	LOG_INF("Device ID:   %s", measurement.device_id);
-	LOG_INF("Temperature: %.3f C", (double) measurement.temperature);
+	LOG_INF("Device ID:   0x%llx", device_id);
+	LOG_INF("Temperature: %.3f C", (double) temperature);
+
+	struct measurement measurement = {
+		.device_id = device_id,
+		.temperature = temperature,
+	};
 
 	char measurement_json[256];
 
-	if (measurement_serialize(&measurement, measurement_json, sizeof(measurement_json)) != 0) {
+	if (serializer_encode_measurement(&measurement, measurement_json, sizeof(measurement_json)) != 0) {
 		goto teardown;
 	}
 
 	LOG_INF("%s", measurement_json);
-
-	LOG_INF("Starting to upload data");
 
 	wifi_init();
 
@@ -53,6 +54,5 @@ disconnect:
 	wifi_disconnect();
 
 teardown:
-	LOG_INF("Powering down");
-	sys_poweroff();
+	device_deep_sleep();
 }
