@@ -7,8 +7,8 @@ include(cmake/ClangArgs.cmake)
 set(RUST_BUILD_TYPE debug)
 set(RUST_TARGET "riscv32i-unknown-none-elf")
 set(RUST_TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/rust/target)
-set(RUST_LIBRARY "${RUST_TARGET_DIR}/${RUST_TARGET}/${RUST_BUILD_TYPE}/librustapp.a")
-set(RUST_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/rust/.cargo/config.toml)
+set(RUST_LIBRARY "${RUST_TARGET_DIR}/${RUST_TARGET}/${RUST_BUILD_TYPE}/libapp.a")
+set(RUST_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/rust/app/.cargo/config.toml)
 
 set(BINDGEN_CLANG_TARGET "riscv32-unknown-none-elf")
 set(BINDGEN_CLANG_ARGS ${CMAKE_CURRENT_BINARY_DIR}/rust/clang_args.txt)
@@ -30,7 +30,7 @@ add_custom_command(
         BYPRODUCTS ${RUST_LIBRARY}
         COMMAND cargo build
         COMMENT "Building Rust application"
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/app
 )
 
 add_custom_target(rustapp ALL

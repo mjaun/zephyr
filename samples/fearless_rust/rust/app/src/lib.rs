@@ -1,7 +1,6 @@
 #![no_std]
 
-mod ffi;
-mod panic;
+extern crate zephyr;
 
 extern "C" {
     fn say_hello();
