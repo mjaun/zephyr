@@ -40,5 +40,5 @@ add_custom_target(rustapp ALL
 add_dependencies(rustapp zephyr)
 add_dependencies(app rustapp)
 
-target_link_libraries(app PUBLIC ${RUST_LIBRARY})
-target_sources(app PRIVATE src/main.c)
+target_link_libraries(app PUBLIC -Wl,--allow-multiple-definition ${RUST_LIBRARY})
+target_sources(app PRIVATE src/main.c ${BINDGEN_WRAP_STATIC_FNS})
