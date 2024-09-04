@@ -1,12 +1,7 @@
 #![no_std]
 
-use core::panic::PanicInfo;
-
-#[panic_handler]
-fn panic(_ :&PanicInfo) -> ! {
-    loop {
-    }
-}
+mod ffi;
+mod panic;
 
 extern "C" {
     fn say_hello();
