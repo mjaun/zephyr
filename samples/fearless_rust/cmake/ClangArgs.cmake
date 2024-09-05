@@ -1,4 +1,4 @@
-function(generate_clang_args BINDGEN_CLANG_ARGS)
+function(generate_clang_args BINDGEN_CLANG_ARGS BINDGEN_CLANG_TARGET)
     # Get compiler arguments from Zephyr
     zephyr_get_system_include_directories_for_lang(C system_includes)
     zephyr_get_include_directories_for_lang(C includes)
@@ -34,14 +34,12 @@ function(generate_clang_args BINDGEN_CLANG_ARGS)
         message(WARNING "Unable to determine compiler standard include directories.")
     endif()
 
-    # Not sure if a proper target should be provided as well to generate the correct bindings.
-
     # Generate file containing arguments for Clang. Note that the file is generated after the
     # CMake configure stage as the variables contain generator expressions which cannot be
     # evaluated right now.
     file(
             GENERATE
             OUTPUT ${BINDGEN_CLANG_ARGS}
-            CONTENT "${standard_includes};${system_includes};${includes};${definitions};${options};${ARGN}"
+            CONTENT "--target=${BINDGEN_CLANG_TARGET};${standard_includes};${system_includes};${includes};${definitions};${options}"
     )
 endfunction()

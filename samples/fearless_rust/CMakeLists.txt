@@ -16,21 +16,36 @@ set(BINDGEN_WRAP_STATIC_FNS ${CMAKE_CURRENT_BINARY_DIR}/rust/static_fns.c)
 set(BINDGEN_INPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/bindgen_input.h)
 set(BINDGEN_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/rust/bindings.rs)
 
+set(DTS_RUST_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/scripts/gen_dts_rust.py)
+set(DTS_EDT_LIB ${ZEPHYR_BASE}/scripts/dts/python-devicetree/src)
+set(DTS_EDT_PICKLE ${CMAKE_BINARY_DIR}/zephyr/edt.pickle)
+set(DTS_RUST ${CMAKE_CURRENT_BINARY_DIR}/rust/dts.rs)
+
 if(NOT CONFIG_RISCV_ISA_RV32I)
     message(FATAL_ERROR "Rust: Add support for other target")
 endif()
 
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/rust)
 configure_file(rust/config-template.toml ${RUST_CONFIG})
-generate_clang_args(${BINDGEN_CLANG_ARGS} "--target=${BINDGEN_CLANG_TARGET}")
+generate_clang_args(${BINDGEN_CLANG_ARGS} ${BINDGEN_CLANG_TARGET})
+
+execute_process(
+        COMMAND ${PYTHON_EXECUTABLE} ${DTS_RUST_SCRIPT}
+                --edt-lib ${DTS_EDT_LIB}
+                --edt-pickle ${DTS_EDT_PICKLE}
+                --rust-out ${DTS_RUST}
+        COMMAND_ERROR_IS_FATAL ANY
+)
 
 set(DUMMY_FILE ${CMAKE_CURRENT_BINARY_DIR}/rust/build-always)
 
 add_custom_command(
         OUTPUT ${DUMMY_FILE}
-        BYPRODUCTS ${RUST_LIBRARY}
+        BYPRODUCTS ${RUST_LIBRARY} ${BINDGEN_WRAP_STATIC_FNS}
         COMMAND cargo build
         COMMENT "Building Rust application"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/rust/app
+        USES_TERMINAL
 )
 
 add_custom_target(rustapp ALL

@@ -2,6 +2,11 @@ use std::{env, fs};
 use std::path::PathBuf;
 
 fn main() {
+    generate_bindings();
+    import_rust_dts();
+}
+
+fn generate_bindings() {
     let zephyr_base = PathBuf::from(env::var("ZEPHYR_BASE").expect("ZEPHYR_BASE must be set!"));
     let input_path = PathBuf::from(env::var("BINDGEN_INPUT").expect("BINDGEN_INPUT must be set!"));
     let output_path = PathBuf::from(env::var("BINDGEN_OUTPUT").expect("BINDGEN_OUTPUT must be set!"));
@@ -39,4 +44,11 @@ fn main() {
     bindings
         .write_to_file(output_path)
         .expect("Couldn't write bindings!");
+}
+
+fn import_rust_dts() {
+    let rust_dts = PathBuf::from(env::var("DTS_RUST").expect("DTS_RUST must be set!"));
+
+    // report environment variable back to allow IDE to resolve the included file
+    println!("cargo:rustc-env=DTS_RUST={}", rust_dts.to_str().unwrap());
 }

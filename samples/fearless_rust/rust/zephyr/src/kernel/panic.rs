@@ -1,7 +1,12 @@
 use core::panic::PanicInfo;
 
+extern "C" {
+    fn rust_panic() -> !;
+}
+
 #[panic_handler]
 fn panic(_ :&PanicInfo) -> ! {
-    loop {
+    unsafe {
+        rust_panic();
     }
 }

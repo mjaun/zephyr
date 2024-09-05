@@ -15,14 +15,14 @@ use core::fmt::{
 #[macro_export]
 macro_rules! printk {
     ($($arg:tt)*) => {{
-        $crate::printk::printk(format_args!($($arg)*));
+        $crate::kernel::printk::printk(format_args!($($arg)*));
     }};
 }
 
 #[macro_export]
 macro_rules! printkln {
     ($($arg:tt)*) => {{
-        $crate::printk::printkln(format_args!($($arg)*));
+        $crate::kernel::printk::printkln(format_args!($($arg)*));
     }};
 }
 

@@ -3,19 +3,17 @@
 extern crate zephyr;
 extern crate alloc;
 
-use alloc::vec;
-use zephyr::printkln;
+use zephyr::drivers::sensor::{Sensor, SensorChannel};
+use zephyr::{device_dt_get, dt_alias, printkln};
 
 #[no_mangle]
 extern "C" fn rust_main() {
     printkln!("Hello World!");
 
-    let test_vec = vec!(1, 2, 3, 4, 5);
+    let mut sensor = Sensor::new(device_dt_get!(dt_alias!(temp_sensor)));
+    sensor.sample_fetch().unwrap();
+    let value = sensor.channel_get(SensorChannel::AmbientTemp).unwrap();
+    let temperature: f32 = value.into();
 
-    let mut sum = 0;
-    for item in test_vec {
-        sum += item;
-    }
-
-    printkln!("sum={}", sum);
+    printkln!("temperature={}", temperature);
 }
