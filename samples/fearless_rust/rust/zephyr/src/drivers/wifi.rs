@@ -1,13 +1,23 @@
+use alloc::boxed::Box;
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::ffi::c_void;
-use core::mem::{size_of_val};
+use core::mem::{MaybeUninit, size_of_val};
 use core::ptr::{null, null_mut};
 use core::time::Duration;
 use crate::kernel::errno::{check_ptr_mut, check_result, ENODEV, ErrnoResult};
 use crate::sys::{net_if_get_default, net_mgmt_NET_REQUEST_WIFI_CONNECT, net_mgmt_NET_REQUEST_WIFI_DISCONNECT};
 
 pub struct Wifi {
+    // TODO: Protect against concurrent access by Rust application and Zephyr callbacks
+    data: Box<WifiData>,
+}
+
+struct WifiData {
     net_if: *mut crate::sys::net_if,
+    rust_cb: crate::sys::rust_net_mgmt_cb,
+    on_connected: Vec<Box<dyn FnMut(i32)>>,
+    on_disconnected: Vec<Box<dyn FnMut(i32)>>,
 }
 
 #[derive(Default)]
@@ -62,15 +72,40 @@ pub enum WifiMfpOptions {
     Required = crate::sys::wifi_mfp_options_WIFI_MFP_REQUIRED,
 }
 
-const NET_WIFI_BASE: u32 = 0x51560000;
-const REQUEST_WIFI_CONNECT: u32 = NET_WIFI_BASE | crate::sys::net_request_wifi_cmd_NET_REQUEST_WIFI_CMD_CONNECT;
-const REQUEST_WIFI_DISCONNECT: u32 = NET_WIFI_BASE | crate::sys::net_request_wifi_cmd_NET_REQUEST_WIFI_CMD_DISCONNECT;
+const NET_WIFI_REQUEST: u32 = 0x5156_0000;
+const REQUEST_WIFI_CONNECT: u32 = NET_WIFI_REQUEST | crate::sys::net_request_wifi_cmd_NET_REQUEST_WIFI_CMD_CONNECT;
+const REQUEST_WIFI_DISCONNECT: u32 = NET_WIFI_REQUEST | crate::sys::net_request_wifi_cmd_NET_REQUEST_WIFI_CMD_DISCONNECT;
+
+const NET_WIFI_EVENT: u32 = 0xD156_0000;
+const EVENT_WIFI_CONNECT_RESULT: u32 = NET_WIFI_EVENT | crate::sys::net_event_wifi_cmd_NET_EVENT_WIFI_CMD_CONNECT_RESULT;
+const EVENT_WIFI_DISCONNECT_RESULT: u32 = NET_WIFI_EVENT | crate::sys::net_event_wifi_cmd_NET_EVENT_WIFI_CMD_DISCONNECT_RESULT;
 
 impl Wifi {
-    pub fn get_default() -> ErrnoResult<Self> {
+    pub fn from_default_iface() -> ErrnoResult<Self> {
         unsafe {
             let ret = net_if_get_default();
-            Ok(Wifi { net_if: check_ptr_mut(ret, ENODEV)? })
+            Ok(Wifi::new(check_ptr_mut(ret, ENODEV)?))
+        }
+    }
+
+    fn new(net_if: *mut crate::sys::net_if) -> Self {
+        let data = Box::new(WifiData {
+            net_if,
+            rust_cb: Default::default(),
+            on_connected: Default::default(),
+            on_disconnected: Default::default(),
+        });
+
+        let data_ptr = Box::into_raw(data);
+
+        unsafe {
+            crate::sys::rust_net_mgmt_add_event_callback(
+                &mut (*data_ptr).rust_cb as *mut crate::sys::rust_net_mgmt_cb,
+                EVENT_WIFI_CONNECT_RESULT | EVENT_WIFI_DISCONNECT_RESULT,
+                data_ptr as *mut c_void,
+            );
+
+            Wifi { data: Box::from_raw(data_ptr) }
         }
     }
 
@@ -114,7 +149,7 @@ impl Wifi {
         unsafe {
             let ret = net_mgmt_NET_REQUEST_WIFI_CONNECT(
                 REQUEST_WIFI_CONNECT,
-                self.net_if,
+                self.data.net_if,
                 req_data as *mut c_void,
                 req_size,
             );
@@ -127,12 +162,71 @@ impl Wifi {
         unsafe {
             let ret = net_mgmt_NET_REQUEST_WIFI_DISCONNECT(
                 REQUEST_WIFI_DISCONNECT,
-                self.net_if,
+                self.data.net_if,
                 null_mut(),
-                0
+                0,
             );
 
             check_result(ret)
         }
+    }
+
+    pub fn on_connected<F>(&mut self, callback: F)
+    where
+        F: FnMut(i32) + Send + 'static,
+    {
+        self.data.on_connected.push(Box::new(callback));
+    }
+
+    pub fn on_disconnected<F>(&mut self, callback: F)
+    where
+        F: FnMut(i32) + Send + 'static,
+    {
+        self.data.on_disconnected.push(Box::new(callback));
+    }
+}
+
+#[no_mangle]
+extern "C" fn rust_net_mgmt_event_handler(rust_data: *mut c_void,
+                                          iface: *mut crate::sys::net_if,
+                                          mgmt_event: u32,
+                                          info: *const c_void,
+                                          _info_length: usize) {
+    let mut data = unsafe {
+        Box::from_raw(rust_data as *mut WifiData)
+    };
+
+    if iface != data.net_if {
+        return;
+    }
+
+    let get_status = |info: *const c_void| -> i32 {
+        let status = info as *const crate::sys::wifi_status;
+        unsafe { (*status).__bindgen_anon_1.status }
+    };
+
+    match mgmt_event {
+        EVENT_WIFI_CONNECT_RESULT => {
+            for callback in data.on_connected.iter_mut() {
+                callback(get_status(info));
+            }
+        }
+        EVENT_WIFI_DISCONNECT_RESULT => {
+            for callback in data.on_disconnected.iter_mut() {
+                callback(get_status(info));
+            }
+        }
+        _ => ()
+    }
+
+    // turn back into a raw pointer to avoid deleting
+    Box::into_raw(data);
+}
+
+impl Default for crate::sys::rust_net_mgmt_cb {
+    fn default() -> Self {
+        // data is initialized when adding the event callback
+        let uninit: MaybeUninit<Self> = MaybeUninit::uninit();
+        unsafe { uninit.assume_init() }
     }
 }

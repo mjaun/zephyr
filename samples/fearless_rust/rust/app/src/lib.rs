@@ -21,7 +21,10 @@ extern "C" fn rust_main() {
 
     printkln!("temperature={}", temperature);
 
-    let mut wifi = Wifi::get_default().unwrap();
+    let mut wifi = Wifi::from_default_iface().unwrap();
+
+    wifi.on_connected(|status| { printkln!("Connected: {}", status); });
+    wifi.on_disconnected(|status| { printkln!("Disconnected: {}", status); });
 
     printkln!("Connecting...");
 
