@@ -32,11 +32,13 @@ fn generate_bindings() {
         .blocklist_function("z_impl_.*")
         .blocklist_var("K_SYSCALL_.*")
         .blocklist_var("DT_.*")
-        .blocklist_var("CONFIG_.*")
+        //.blocklist_var("CONFIG_.*")
         .blocklist_var("Z_UTIL_.*")
 
-        // Deprecated function, hopefully there is a more generic way of doing this.
+        // Deprecated functions, hopefully there is a more generic way of doing this.
         .blocklist_function("sys_clock_timeout_end_calc")
+        .blocklist_function("net_ipv6_set_hop_limit")
+        .blocklist_function("net_if_ipv4_set_netmask_by_index")
 
         .generate()
         .expect("Unable to generate bindings!");

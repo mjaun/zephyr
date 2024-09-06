@@ -3,8 +3,12 @@
 extern crate zephyr;
 extern crate alloc;
 
+use alloc::string::String;
+use core::time::Duration;
 use zephyr::drivers::sensor::{Sensor, SensorChannel};
 use zephyr::{device_dt_get, dt_alias, printkln};
+use zephyr::drivers::wifi::{Wifi, WifiConnectReqParams, WifiSecurityType};
+use zephyr::kernel::sleep;
 
 #[no_mangle]
 extern "C" fn rust_main() {
@@ -16,4 +20,25 @@ extern "C" fn rust_main() {
     let temperature: f32 = value.into();
 
     printkln!("temperature={}", temperature);
+
+    let mut wifi = Wifi::get_default().unwrap();
+
+    printkln!("Connecting...");
+
+    wifi.connect(WifiConnectReqParams {
+        ssid: String::from(env!("WIFI_SSID")),
+        psk: Some(String::from(env!("WIFI_PSK"))),
+        security: WifiSecurityType::Psk,
+        ..Default::default()
+    }).unwrap();
+
+    sleep(Duration::from_secs(10));
+
+    printkln!("Disconnecting...");
+
+    wifi.disconnect().unwrap();
+
+    sleep(Duration::from_secs(5));
+
+    printkln!("Done!");
 }

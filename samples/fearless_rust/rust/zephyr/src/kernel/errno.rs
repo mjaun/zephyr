@@ -16,6 +16,22 @@ pub fn check_value(result: core::ffi::c_int) -> ErrnoResult<u32> {
     }
 }
 
+pub fn check_ptr<T>(result: *const T, null_error: u32) -> ErrnoResult<*const T> {
+    if result == core::ptr::null() {
+        Err(null_error)
+    } else {
+        Ok(result)
+    }
+}
+
+pub fn check_ptr_mut<T>(result: *mut T, null_error: u32) -> ErrnoResult<*mut T> {
+    if result == core::ptr::null_mut() {
+        Err(null_error)
+    } else {
+        Ok(result)
+    }
+}
+
 // definitions from minimal libc
 pub const EPERM: u32 = 1;
 pub const ENOENT: u32 = 2;

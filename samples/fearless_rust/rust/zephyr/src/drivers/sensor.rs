@@ -1,5 +1,5 @@
 use crate::kernel::errno::{check_result, ErrnoResult};
-use crate::sys::{device, sensor_channel, sensor_channel_get, sensor_channel_SENSOR_CHAN_AMBIENT_TEMP, sensor_sample_fetch, sensor_value};
+use crate::sys::{device, sensor_channel, sensor_channel_get, sensor_sample_fetch, sensor_value};
 
 pub struct Sensor {
     device: *const device,
@@ -9,7 +9,7 @@ pub type SensorValue = sensor_value;
 
 #[repr(u32)]
 pub enum SensorChannel {
-    AmbientTemp = sensor_channel_SENSOR_CHAN_AMBIENT_TEMP,
+    AmbientTemp = crate::sys::sensor_channel_SENSOR_CHAN_AMBIENT_TEMP,
 }
 
 impl Sensor {

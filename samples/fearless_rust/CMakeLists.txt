@@ -26,7 +26,7 @@ if(NOT CONFIG_RISCV_ISA_RV32I)
 endif()
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/rust)
-configure_file(rust/config-template.toml ${RUST_CONFIG})
+configure_file(rust/app/config-template.toml ${RUST_CONFIG})
 generate_clang_args(${BINDGEN_CLANG_ARGS} ${BINDGEN_CLANG_TARGET})
 
 execute_process(
