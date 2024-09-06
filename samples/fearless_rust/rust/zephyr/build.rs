@@ -29,10 +29,10 @@ fn generate_bindings() {
 
         .allowlist_file(zephyr_base.join(".*").to_str().unwrap())
         .allowlist_file(".*/errno.h")
+        .allowlist_file(".*/esp_sleep.h")
         .blocklist_function("z_impl_.*")
         .blocklist_var("K_SYSCALL_.*")
         .blocklist_var("DT_.*")
-        //.blocklist_var("CONFIG_.*")
         .blocklist_var("Z_UTIL_.*")
 
         // Deprecated functions, hopefully there is a more generic way of doing this.

@@ -8,6 +8,4 @@ fn panic(info: &PanicInfo) -> ! {
     unsafe {
         crate::sys::rust_panic();
     }
-
-    loop {}
 }

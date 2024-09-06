@@ -3,6 +3,8 @@
 extern crate zephyr;
 extern crate alloc;
 
+mod device;
+
 use alloc::string::String;
 use core::time::Duration;
 use zephyr::drivers::sensor::{Sensor, SensorChannel};
@@ -14,6 +16,9 @@ use zephyr::net::socket::UdpSocket;
 #[no_mangle]
 extern "C" fn rust_main() {
     printkln!("Hello World!");
+
+    let device_id = device::id_get();
+    printkln!("device_id={}", device_id);
 
     let mut sensor = Sensor::new(device_dt_get!(dt_alias!(temp_sensor)));
     sensor.sample_fetch().unwrap();
@@ -55,4 +60,6 @@ extern "C" fn rust_main() {
     sleep(Duration::from_secs(5));
 
     printkln!("Done!");
+
+    device::deep_sleep(Duration::from_secs(10));
 }
