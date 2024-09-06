@@ -7,8 +7,9 @@ use alloc::string::String;
 use core::time::Duration;
 use zephyr::drivers::sensor::{Sensor, SensorChannel};
 use zephyr::{device_dt_get, dt_alias, printkln};
-use zephyr::drivers::wifi::{Wifi, WifiConnectReqParams, WifiSecurityType};
+use zephyr::net::wifi::{Wifi, WifiConnectReqParams, WifiSecurityType};
 use zephyr::kernel::sleep;
+use zephyr::net::socket::UdpSocket;
 
 #[no_mangle]
 extern "C" fn rust_main() {
@@ -36,6 +37,16 @@ extern "C" fn rust_main() {
     }).unwrap();
 
     sleep(Duration::from_secs(10));
+
+    printkln!("Sending data...");
+
+    let mut udp = UdpSocket::new().unwrap();
+    let data = "Hello World!".as_bytes();
+
+    udp.bind("0.0.0.0:0").unwrap();
+    udp.sendto(data, env!("SERVER_ADDRESS")).unwrap();
+
+    sleep(Duration::from_secs(5));
 
     printkln!("Disconnecting...");
 

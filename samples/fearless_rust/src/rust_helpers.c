@@ -11,6 +11,11 @@ void rust_panic(void)
     k_panic();
 }
 
+int rust_errno(void)
+{
+    return errno;
+}
+
 void rust_net_mgmt_add_event_callback(struct rust_net_mgmt_cb *rust_cb, uint32_t mgmt_event_mask, void* rust_data)
 {
     rust_cb->rust_data = rust_data;

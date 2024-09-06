@@ -5,4 +5,5 @@
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/net_event.h>
+#include <zephyr/net/socket.h>
 #include "rust_helpers.h"

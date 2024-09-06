@@ -6,6 +6,7 @@ use serde::Deserialize;
 struct Config {
     wifi_ssid: String,
     wifi_psk: String,
+    server_address: String,
 }
 
 fn main() {
@@ -20,5 +21,6 @@ fn main() {
 
     println!("cargo:rustc-env=WIFI_SSID={}", config.wifi_ssid);
     println!("cargo:rustc-env=WIFI_PSK={}", config.wifi_psk);
+    println!("cargo:rustc-env=SERVER_ADDRESS={}", config.server_address);
     println!("cargo:rerun-if-changed=config.json");
 }

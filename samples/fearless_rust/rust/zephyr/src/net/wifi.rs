@@ -186,6 +186,16 @@ impl Wifi {
     }
 }
 
+impl Drop for Wifi {
+    fn drop(&mut self) {
+        unsafe {
+            crate::sys::rust_net_mgmt_del_event_callback(
+                &mut self.data.rust_cb
+            );
+        }
+    }
+}
+
 #[no_mangle]
 extern "C" fn rust_net_mgmt_event_handler(rust_data: *mut c_void,
                                           iface: *mut crate::sys::net_if,

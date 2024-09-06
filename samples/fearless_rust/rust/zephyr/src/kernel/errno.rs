@@ -1,3 +1,5 @@
+use crate::sys::rust_errno;
+
 pub type ErrnoResult<T> = Result<T, u32>;
 
 pub fn check_result(result: core::ffi::c_int) -> ErrnoResult<()> {
@@ -13,6 +15,22 @@ pub fn check_value(result: core::ffi::c_int) -> ErrnoResult<u32> {
         Ok(result as u32)
     } else {
         Err(-result as u32)
+    }
+}
+
+pub fn check_result_errno(result: core::ffi::c_int) -> ErrnoResult<()> {
+    if result >= 0 {
+        Ok(())
+    } else {
+        Err(unsafe { rust_errno() } as u32)
+    }
+}
+
+pub fn check_value_errno(result: core::ffi::c_int) -> ErrnoResult<u32> {
+    if result >= 0 {
+        Ok(result as u32)
+    } else {
+        Err(unsafe { rust_errno() } as u32)
     }
 }
 

@@ -2,7 +2,8 @@
 
 #include <zephyr/net/net_mgmt.h>
 
-void rust_panic();
+void rust_panic(void);
+int rust_errno(void);
 
 struct rust_net_mgmt_cb {
     struct net_mgmt_event_callback net_mgmt_cb;
