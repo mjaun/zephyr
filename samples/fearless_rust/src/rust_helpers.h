@@ -2,7 +2,7 @@
 
 #include <zephyr/net/net_mgmt.h>
 
-FUNC_NORETURN void rust_panic(void);
+void rust_panic(void);
 int rust_errno(void);
 
 struct rust_net_mgmt_cb {

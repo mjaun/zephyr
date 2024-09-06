@@ -8,6 +8,8 @@ crate-type = ["staticlib"]
 
 [dependencies]
 zephyr = { path = "../zephyr" }
+serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
 [build-dependencies]
 serde = { version = "1.0", features = ["derive"] }
