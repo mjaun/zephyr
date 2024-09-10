@@ -4,6 +4,7 @@ use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut};
 use core::time::Duration;
 use crate::kernel::errno::{check_result, ErrnoResult};
+use crate::sys::k_mutex;
 
 pub struct Mutex<T> {
     mutex: *mut crate::sys::k_mutex,
@@ -43,6 +44,12 @@ impl<T> Drop for Mutex<T> {
 
 pub struct MutexGuard<'a, T> {
     mutex: &'a Mutex<T>,
+}
+
+impl<'a, T> MutexGuard<'a, T> {
+    pub(crate) fn mutex_ptr(&self) -> *mut k_mutex {
+        self.mutex.mutex
+    }
 }
 
 impl<T> Deref for MutexGuard<'_, T> {

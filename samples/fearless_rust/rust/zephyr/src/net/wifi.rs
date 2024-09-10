@@ -9,7 +9,6 @@ use crate::kernel::errno::{check_ptr_mut, check_result, ENODEV, ErrnoResult};
 use crate::sys::{net_if_get_default, net_mgmt_NET_REQUEST_WIFI_CONNECT, net_mgmt_NET_REQUEST_WIFI_DISCONNECT};
 
 pub struct Wifi {
-    // TODO: Protect against concurrent access by Rust application and Zephyr callbacks
     data: Box<WifiData>,
 }
 
@@ -89,24 +88,22 @@ impl Wifi {
     }
 
     fn new(net_if: *mut crate::sys::net_if) -> Self {
-        let data = Box::new(WifiData {
+        let mut data = Box::new(WifiData {
             net_if,
             rust_cb: MaybeUninit::uninit(),
             on_connected: Default::default(),
             on_disconnected: Default::default(),
         });
 
-        let data_ptr = Box::into_raw(data);
-
         unsafe {
             crate::sys::rust_net_mgmt_add_event_callback(
-                (*data_ptr).rust_cb.as_mut_ptr(),
+                data.rust_cb.as_mut_ptr(),
                 EVENT_WIFI_CONNECT_RESULT | EVENT_WIFI_DISCONNECT_RESULT,
-                data_ptr as *mut c_void,
+                data.as_mut() as *mut WifiData as *mut c_void,
             );
-
-            Wifi { data: Box::from_raw(data_ptr) }
         }
+
+        Wifi { data }
     }
 
     pub fn connect(&mut self, params: WifiConnectReqParams) -> ErrnoResult<()> {
@@ -202,9 +199,7 @@ extern "C" fn rust_net_mgmt_event_handler(rust_data: *mut c_void,
                                           mgmt_event: u32,
                                           info: *const c_void,
                                           _info_length: usize) {
-    let mut data = unsafe {
-        Box::from_raw(rust_data as *mut WifiData)
-    };
+    let data = unsafe { &mut *(rust_data as *mut WifiData) };
 
     if iface != data.net_if {
         return;
@@ -228,7 +223,4 @@ extern "C" fn rust_net_mgmt_event_handler(rust_data: *mut c_void,
         }
         _ => ()
     }
-
-    // turn back into a raw pointer to avoid deleting
-    Box::into_raw(data);
 }
