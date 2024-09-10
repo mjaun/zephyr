@@ -15,7 +15,7 @@ pub struct Wifi {
 
 struct WifiData {
     net_if: *mut crate::sys::net_if,
-    rust_cb: crate::sys::rust_net_mgmt_cb,
+    rust_cb: MaybeUninit<crate::sys::rust_net_mgmt_cb>,
     on_connected: Vec<Box<dyn FnMut(i32)>>,
     on_disconnected: Vec<Box<dyn FnMut(i32)>>,
 }
@@ -91,7 +91,7 @@ impl Wifi {
     fn new(net_if: *mut crate::sys::net_if) -> Self {
         let data = Box::new(WifiData {
             net_if,
-            rust_cb: Default::default(),
+            rust_cb: MaybeUninit::uninit(),
             on_connected: Default::default(),
             on_disconnected: Default::default(),
         });
@@ -100,7 +100,7 @@ impl Wifi {
 
         unsafe {
             crate::sys::rust_net_mgmt_add_event_callback(
-                &mut (*data_ptr).rust_cb as *mut crate::sys::rust_net_mgmt_cb,
+                (*data_ptr).rust_cb.as_mut_ptr(),
                 EVENT_WIFI_CONNECT_RESULT | EVENT_WIFI_DISCONNECT_RESULT,
                 data_ptr as *mut c_void,
             );
@@ -190,7 +190,7 @@ impl Drop for Wifi {
     fn drop(&mut self) {
         unsafe {
             crate::sys::rust_net_mgmt_del_event_callback(
-                &mut self.data.rust_cb
+                self.data.rust_cb.as_mut_ptr()
             );
         }
     }
@@ -231,12 +231,4 @@ extern "C" fn rust_net_mgmt_event_handler(rust_data: *mut c_void,
 
     // turn back into a raw pointer to avoid deleting
     Box::into_raw(data);
-}
-
-impl Default for crate::sys::rust_net_mgmt_cb {
-    fn default() -> Self {
-        // data is initialized when adding the event callback
-        let uninit: MaybeUninit<Self> = MaybeUninit::uninit();
-        unsafe { uninit.assume_init() }
-    }
 }
