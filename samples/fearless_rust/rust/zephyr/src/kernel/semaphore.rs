@@ -1,5 +1,5 @@
-use alloc::boxed::Box;
-use core::mem::MaybeUninit;
+use alloc::alloc::{alloc, dealloc};
+use core::alloc::Layout;
 use core::time::Duration;
 use crate::kernel::errno::{check_result, ErrnoResult};
 
@@ -10,11 +10,9 @@ pub struct Semaphore {
 impl Semaphore {
     pub fn new(initial_count: u32, limit: u32) -> Self {
         unsafe {
-            let sem_box: Box<MaybeUninit<crate::sys::k_sem>> = Box::new(MaybeUninit::uninit());
-            let sem_ptr = (*Box::into_raw(sem_box)).as_mut_ptr();
-
-            crate::sys::k_sem_init(sem_ptr, initial_count, limit);
-            Self { sem: sem_ptr }
+            let sem = alloc(Layout::new::<crate::sys::k_sem>()) as *mut crate::sys::k_sem;
+            crate::sys::k_sem_init(sem, initial_count, limit);
+            Self { sem }
         }
     }
 
@@ -40,8 +38,7 @@ impl Semaphore {
 impl Drop for Semaphore {
     fn drop(&mut self) {
         unsafe {
-            // turn into box to delete
-            let _ = Box::from_raw(self.sem);
+            dealloc(self.sem as *mut u8, Layout::new::<crate::sys::k_sem>());
         }
     }
 }

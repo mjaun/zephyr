@@ -5,6 +5,7 @@ pub mod printk;
 pub mod errno;
 pub mod mutex;
 pub mod semaphore;
+pub mod message_queue;
 
 mod panic;
 mod allocator;

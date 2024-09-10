@@ -1,23 +1,21 @@
-use alloc::boxed::Box;
+use alloc::alloc::{alloc, dealloc};
+use core::alloc::Layout;
 use core::cell::UnsafeCell;
-use core::mem::MaybeUninit;
 use core::ops::{Deref, DerefMut};
 use core::time::Duration;
 use crate::kernel::errno::{check_result, ErrnoResult};
 
 pub struct Mutex<T> {
-    data: UnsafeCell<T>,
     mutex: *mut crate::sys::k_mutex,
+    data: UnsafeCell<T>,
 }
 
 impl<T> Mutex<T> {
-    pub fn new(value: T) -> Self {
+    pub fn new(data: T) -> Self {
         unsafe {
-            let mutex_box: Box<MaybeUninit<crate::sys::k_mutex>> = Box::new(MaybeUninit::uninit());
-            let mutex_ptr = (*Box::into_raw(mutex_box)).as_mut_ptr();
-
-            crate::sys::k_mutex_init(mutex_ptr);
-            Self { data: UnsafeCell::new(value), mutex: mutex_ptr }
+            let mutex = alloc(Layout::new::<crate::sys::k_mutex>()) as *mut crate::sys::k_mutex;
+            crate::sys::k_mutex_init(mutex);
+            Self { mutex, data: UnsafeCell::new(data) }
         }
     }
 
@@ -38,8 +36,7 @@ impl<T> Mutex<T> {
 impl<T> Drop for Mutex<T> {
     fn drop(&mut self) {
         unsafe {
-            // turn into box to delete
-            let _ = Box::from_raw(self.mutex);
+            dealloc(self.mutex as *mut u8, Layout::new::<crate::sys::k_mutex>());
         }
     }
 }
