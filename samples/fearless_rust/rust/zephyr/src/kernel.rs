@@ -4,6 +4,7 @@ use crate::sys::{k_sleep};
 pub mod printk;
 pub mod errno;
 pub mod mutex;
+pub mod semaphore;
 
 mod panic;
 mod allocator;
