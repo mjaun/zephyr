@@ -20,7 +20,15 @@ impl<T> Mutex<T> {
         }
     }
 
-    pub fn lock(&self, timeout: Duration) -> LockResult<T> {
+    pub fn lock(&self) -> LockResult<T> {
+        self.try_lock_for(Duration::MAX)
+    }
+
+    pub fn try_lock(&self) -> LockResult<T> {
+        self.try_lock_for(Duration::ZERO)
+    }
+
+    pub fn try_lock_for(&self, timeout: Duration) -> LockResult<T> {
         unsafe {
             check_result(crate::sys::k_mutex_lock(self.mutex, timeout.into()))?;
             Ok(MutexGuard { mutex: &self })
@@ -31,6 +39,11 @@ impl<T> Mutex<T> {
         unsafe {
             check_result(crate::sys::k_mutex_unlock(self.mutex))
         }
+    }
+
+    pub fn get_mut(&mut self) -> &mut T {
+        // no locking necessary because self is borrowed mutably
+        unsafe { &mut (*self.data.get()) }
     }
 }
 

@@ -16,7 +16,15 @@ impl Semaphore {
         }
     }
 
-    pub fn take(&self, timeout: Duration) -> ErrnoResult<()> {
+    pub fn take(&self) {
+        self.try_take_for(Duration::MAX).unwrap();
+    }
+
+    pub fn try_take(&self) -> ErrnoResult<()> {
+        self.try_take_for(Duration::ZERO)
+    }
+
+    pub fn try_take_for(&self, timeout: Duration) -> ErrnoResult<()> {
         unsafe {
             check_result(crate::sys::k_sem_take(self.sem, timeout.into()))
         }

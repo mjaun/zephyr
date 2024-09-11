@@ -15,16 +15,26 @@ pub struct MessageQueue<T: Copy> {
 impl<T: Copy> MessageQueue<T> {
     const MSG_SIZE: usize = size_of::<T>();
 
-    pub fn new(max_msgs: usize) {
+    pub fn new(max_msgs: usize) -> Self {
         unsafe {
             let buffer = alloc(Layout::from_size_align(Self::MSG_SIZE * max_msgs, 1).unwrap());
             let msgq = alloc(Layout::new::<crate::sys::k_msgq>()) as *mut crate::sys::k_msgq;
 
             crate::sys::k_msgq_init(msgq, buffer as *mut c_char, Self::MSG_SIZE, max_msgs as u32);
+
+            MessageQueue { msgq, buffer, phantom: PhantomData }
         }
     }
 
-    pub fn put(&self, msg: T, timeout: Duration) -> ErrnoResult<()> {
+    pub fn put(&self, msg: T) {
+        self.try_put_for(msg, Duration::MAX).unwrap()
+    }
+
+    pub fn try_put(&self, msg: T) -> ErrnoResult<()> {
+        self.try_put_for(msg, Duration::ZERO)
+    }
+
+    pub fn try_put_for(&self, msg: T, timeout: Duration) -> ErrnoResult<()> {
         unsafe {
             let msg_ptr = &msg as *const T as *const c_void;
             let ret = crate::sys::k_msgq_put(self.msgq, msg_ptr, timeout.into());
@@ -32,7 +42,15 @@ impl<T: Copy> MessageQueue<T> {
         }
     }
 
-    pub fn get(&self, timeout: Duration) -> ErrnoResult<T> {
+    pub fn get(&self) -> T {
+        self.try_get_for(Duration::MAX).unwrap()
+    }
+
+    pub fn try_get(&self) -> ErrnoResult<T> {
+        self.try_get_for(Duration::ZERO)
+    }
+
+    pub fn try_get_for(&self, timeout: Duration) -> ErrnoResult<T> {
         unsafe {
             let mut msg: MaybeUninit<T> = MaybeUninit::uninit();
             let ret = crate::sys::k_msgq_get(self.msgq, msg.as_mut_ptr() as *mut c_void, timeout.into());
