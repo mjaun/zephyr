@@ -3,10 +3,7 @@ use crate::sys::{k_sleep};
 
 pub mod printk;
 pub mod errno;
-pub mod mutex;
 pub mod semaphore;
-pub mod message_queue;
-pub mod condition_variable;
 
 mod panic;
 mod allocator;
